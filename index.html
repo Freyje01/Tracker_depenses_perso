@@ -221,6 +221,7 @@
       <button class="mini-btn full" id="doExport">Exporter mes données</button>
       <button class="mini-btn full" id="doImport">Importer des données</button>
       <p class="note">Tes données vivent uniquement sur ce téléphone (rien n'est envoyé nulle part). Exporte de temps en temps pour ne rien perdre si tu changes de tel ou vides le cache.</p>
+      <p class="note" id="storeStatus">Vérification du stockage…</p>
     </div>
     <div class="set-grp">
       <p class="note">Reste · suivi de dépenses local, sans pub. Version 1.</p>
@@ -433,6 +434,7 @@ function renderBilan(){
 
 function renderSettings(){
   $("#defIncLabel").textContent=eur(data.defIncome);
+  updateStoreStatus();
   const ed=$("#catEditor"); ed.innerHTML="";
   data.cats.forEach(c=>{
     const el=document.createElement("button"); el.className="set-row"; el.style.width="100%"; el.style.textAlign="left";
@@ -653,7 +655,30 @@ $("#doImport").onclick=importAll;
   const l=document.createElement("link"); l.rel="manifest"; l.href=URL.createObjectURL(blob); document.head.appendChild(l);
 })();
 
+/* ---------- Persistent storage (anti-eviction) ---------- */
+async function requestPersist(){
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      let p = await navigator.storage.persisted();
+      if(!p) p = await navigator.storage.persist();
+      updateStoreStatus();
+      return p;
+    }
+  }catch(e){}
+  return false;
+}
+function updateStoreStatus(){
+  const el=$("#storeStatus"); if(!el) return;
+  if(!(navigator.storage && navigator.storage.persisted)){ el.textContent=""; return; }
+  navigator.storage.persisted().then(p=>{
+    el.innerHTML = p
+      ? "🔒 Stockage protégé : Android n'effacera pas ces données automatiquement."
+      : "⚠️ Stockage pas encore protégé — installe l'app sur l'écran d'accueil pour l'activer.";
+  }).catch(()=>{ el.textContent=""; });
+}
+
 render();
+requestPersist();
 </script>
 </body>
 </html>
